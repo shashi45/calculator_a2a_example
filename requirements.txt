@@ -1,0 +1,8 @@
+flask==3.0.0
+openai
+requests==2.31.0
+python-dotenv==1.0.0
+mcp
+pydantic
+uvicorn==0.24.0
+fastapi

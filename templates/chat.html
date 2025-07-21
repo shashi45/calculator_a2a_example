@@ -1,0 +1,126 @@
+<!-- templates/chat.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator Chat - A2A Example</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🧮 Calculator Chat</h1>
+            <p>Ask me to perform calculations! Example: "Add 5 and 3" or "What's 15 * 7?"</p>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot-message">
+                <div class="message-content">
+                    Hi! I'm your calculator assistant. I can help you with:
+                    <ul>
+                        <li>Basic math: addition, subtraction, multiplication, division</li>
+                        <li>Complex expressions: "Calculate (15 + 3) * 2"</li>
+                        <li>Natural language: "What's 25 plus 17?"</li>
+                    </ul>
+                    Try asking me a math question!
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <div class="input-wrapper">
+                <input type="text" id="messageInput" placeholder="Ask me to calculate something..." />
+                <button id="sendButton">Send</button>
+            </div>
+            <div class="status" id="status"></div>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const status = document.getElementById('status');
+
+        function addMessage(content, isUser = false, calculation = null, result = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            
+            let messageContent = `<div class="message-content">${content}</div>`;
+            
+            if (calculation && result !== null) {
+                messageContent += `
+                    <div class="calculation-result">
+                        <div class="calculation">${calculation}</div>
+                        <div class="result">= ${result}</div>
+                    </div>
+                `;
+            }
+            
+            messageDiv.innerHTML = messageContent;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function setStatus(message, isError = false) {
+            status.textContent = message;
+            status.className = `status ${isError ? 'error' : 'info'}`;
+            if (message) {
+                setTimeout(() => {
+                    status.textContent = '';
+                    status.className = 'status';
+                }, 3000);
+            }
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message to chat
+            addMessage(message, true);
+            messageInput.value = '';
+            sendButton.disabled = true;
+            setStatus('Processing...');
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    addMessage(data.response, false, data.calculation, data.result);
+                    setStatus('');
+                } else {
+                    addMessage(`Error: ${data.error}`, false);
+                    setStatus('Error occurred', true);
+                }
+            } catch (error) {
+                addMessage('Sorry, there was a connection error. Please try again.', false);
+                setStatus('Connection error', true);
+            } finally {
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Focus input on load
+        messageInput.focus();
+    </script>
+</body>
+</html>
